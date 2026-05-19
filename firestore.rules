@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sessions/{document} {
+      allow read: if false;
+      allow create: if request.resource.data.keys().hasAll([
+                      'sessionId', 'inputType', 'userInput',
+                      'generatedQuestion', 'createdAt',
+                      'feedbackGiven', 'feedbackValue'
+                    ])
+                   && request.resource.data.userInput.size() <= 500
+                   && request.resource.data.generatedQuestion.size() <= 1000
+                   && request.resource.data.inputType in ['decision', 'open_topic'];
+      // Allow updating only the feedback fields
+      allow update: if request.resource.data.diff(resource.data)
+                       .affectedKeys()
+                       .hasOnly(['feedbackGiven', 'feedbackValue']);
+    }
+  }
+}
